@@ -5,6 +5,9 @@ import { Map, TileLayer, Marker } from "react-leaflet";
 import { LeafletMouseEvent } from "leaflet";
 import api from "../../services/api";
 import axios from "axios";
+import Dropzone from "../../components/Dropzone";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import logo from "../../assets/logo.svg";
 
@@ -45,6 +48,7 @@ const CreatePoint: React.FC = () => {
     0,
     0,
   ]);
+  const [selectedFile, setSelectedFile] = useState<File>();
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -123,26 +127,56 @@ const CreatePoint: React.FC = () => {
     const city = selectedCity;
     const [latitude, longitude] = selectedPosition;
     const items = selectedItems;
-    const data = {
-      name,
-      email,
-      whatsapp,
-      uf,
-      city,
-      latitude,
-      longitude,
-      items,
-    };
 
-    await api.post("points", data);
+    const data = new FormData();
 
-    alert("Ponto de coleta criado !");
+    data.append("name", name);
+    data.append("email", email);
+    data.append("whatsapp", whatsapp);
+    data.append("uf", uf);
+    data.append("city", city);
+    data.append("latitude", String(latitude));
+    data.append("longitude", String(longitude));
+    data.append("items", items.join(","));
 
-    history.push("/");
+    if (selectedFile) {
+      data.append("image", selectedFile);
+    }
+
+    await api
+      .post("points", data)
+      .then((response) => {
+        if (response.status === 200) {
+          toast.success("Ponto de coleta cadastrado !", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+          setTimeout(() => {
+            history.push("/");
+          }, 3000);
+        }
+      })
+      .catch((error) => {
+        toast.error("Erro ao cadastrar ponto de coleta !", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      });
   }
 
   return (
     <div id="page-create-point">
+      <ToastContainer />
       <header>
         <img src={logo} alt="Ecoleta" />
 
@@ -155,6 +189,8 @@ const CreatePoint: React.FC = () => {
         <h1>
           Cadastro do <br /> ponto de coleta
         </h1>
+
+        <Dropzone onFileUploaded={setSelectedFile} />
 
         <fieldset>
           <legend>
